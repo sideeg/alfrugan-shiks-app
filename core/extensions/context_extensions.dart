@@ -1,0 +1,35 @@
+// Path: lib/core/extensions/context_extensions.dart
+import 'package:flutter/material.dart';
+
+extension ContextExtensions on BuildContext {
+  ThemeData get theme => Theme.of(this);
+  TextTheme get textTheme => theme.textTheme;
+  ColorScheme get colorScheme => theme.colorScheme;
+  
+  double get screenWidth => MediaQuery.of(this).size.width;
+  double get screenHeight => MediaQuery.of(this).size.height;
+  
+  bool get isRTL => Directionality.of(this) == TextDirection.rtl;
+  
+  void showSnackBar(String message, {bool isError = false}) {
+    ScaffoldMessenger.of(this).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: isError ? Colors.red : null,
+      ),
+    );
+  }
+  
+  void hideKeyboard() {
+    FocusScope.of(this).unfocus();
+  }
+  
+  Future<T?> pushNamed<T>(String routeName, {Object? arguments}) {
+    return Navigator.of(this).pushNamed<T>(routeName, arguments: arguments);
+  }
+  
+  void pop<T>([T? result]) {
+    Navigator.of(this).pop<T>(result);
+  }
+}
+
