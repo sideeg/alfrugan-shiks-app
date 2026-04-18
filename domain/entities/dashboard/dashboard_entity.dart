@@ -36,7 +36,7 @@ class RecentHifzLogEntity {
       id: json['id'],
       studentName: json['student']['name'] ?? 'طالب',
       courseName: json['course']['name'] ?? 'دورة',
-      surahName: json['surah_name'] ?? '', // This comes from start_sura
+      surahName: json['surah_name'] ?? '',
       fromAyah: json['from_ayah'] ?? 0,
       toAyah: json['to_ayah'] ?? 0,
       date: json['date'] ?? json['created_at'] ?? '',
@@ -81,15 +81,20 @@ class DashboardEntity {
   final List<RecentHifzLogEntity> recentHifzLogs;
   final List<RecentReviewLogEntity> recentReviewLogs;
 
+  // NEW: unread notification count piggybacked on the dashboard response.
+  // Saves a separate API call — the backend calculates it in getDashboard().
+  // Defaults to 0 so the app works even if the backend hasn't been updated yet.
+  final int unreadNotificationsCount;
+
   DashboardEntity({
     required this.stats,
     required this.recentHifzLogs,
     required this.recentReviewLogs,
+    this.unreadNotificationsCount = 0, // ← default 0, not required
   });
 
   factory DashboardEntity.fromJson(Map<String, dynamic> json) {
     final data = json['data'];
-
     return DashboardEntity(
       stats: DashboardStatsEntity(
         totalStudents: data['stats']['total_students'] ?? 0,
@@ -104,6 +109,9 @@ class DashboardEntity {
               ?.map((log) => RecentReviewLogEntity.fromJson(log))
               .toList() ??
           [],
+      // NEW: parse unread_notifications_count from the dashboard response.
+      // The ?? 0 fallback means the app won't break if the backend key is missing.
+      unreadNotificationsCount: data['unread_notifications_count'] as int? ?? 0,
     );
   }
 }

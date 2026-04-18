@@ -56,9 +56,11 @@ class _EnhancedLogSheetState extends ConsumerState<EnhancedLogSheet>
     with SingleTickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
   late final TextEditingController _startS, _endS, _startA, _endA, _notes;
+  late final TextEditingController _dateCtrl; // For date picker
   late LogType _type;
   String _eval = 'very_good';
   bool _loading = false;
+  late DateTime _selectedDate;
 
   late final AnimationController _slideCtrl;
   late final Animation<Offset> _slideAnim;
@@ -71,6 +73,10 @@ class _EnhancedLogSheetState extends ConsumerState<EnhancedLogSheet>
     _type = widget.initialLogType;
     final h = widget.hifzLog;
     final r = widget.reviewLog;
+    _selectedDate = h?.sessionDate ?? r?.sessionDate ?? DateTime.now();
+    _dateCtrl = TextEditingController(
+      text: _formatDate(_selectedDate),
+    );
     _startS = TextEditingController(text: h?.startSurah ?? r?.startSurah ?? '');
     _endS = TextEditingController(text: h?.endSurah ?? r?.endSurah ?? '');
     _startA = TextEditingController(
@@ -96,7 +102,30 @@ class _EnhancedLogSheetState extends ConsumerState<EnhancedLogSheet>
     _endA.dispose();
     _notes.dispose();
     _slideCtrl.dispose();
+    _dateCtrl.dispose();
     super.dispose();
+  }
+
+  //  Format date helper
+  String _formatDate(DateTime date) {
+    return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+  }
+
+  //  Date picker callback
+  Future<void> _pickDate() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _selectedDate,
+      firstDate: DateTime(2020),
+      lastDate: DateTime.now(),
+      locale: const Locale('ar'),
+    );
+    if (picked != null) {
+      setState(() {
+        _selectedDate = picked;
+        _dateCtrl.text = _formatDate(picked);
+      });
+    }
   }
 
   Future<void> _submit() async {
@@ -108,6 +137,7 @@ class _EnhancedLogSheetState extends ConsumerState<EnhancedLogSheet>
         'group_id': widget.groupId,
         'course_id': widget.courseId,
         'sheikh_id': ref.read(authProvider).user?.id,
+        'session_date': _formatDate(_selectedDate),
         'start_surah': _startS.text.trim(),
         'end_surah': _endS.text.trim(),
         'start_ayah': int.parse(_startA.text.trim()),
@@ -196,6 +226,32 @@ class _EnhancedLogSheetState extends ConsumerState<EnhancedLogSheet>
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       const SizedBox(height: 4),
+
+                      // ✅ NEW: Date picker section
+                      _SectionLabel(label: 'تاريخ الجلسة', isDark: isDark),
+                      const SizedBox(height: 10),
+                      _FieldCard(
+                        isDark: isDark,
+                        children: [
+                          GestureDetector(
+                            onTap: _pickDate,
+                            child: _SheetField(
+                              ctrl: _dateCtrl,
+                              label: 'التاريخ',
+                              icon: Icons.calendar_today_rounded,
+                              color: _activeColor,
+                              isDark: isDark,
+                              action: TextInputAction.next,
+                              enabled: false, // Read-only, open picker on tap
+                              validator: (v) => (v == null || v.isEmpty)
+                                  ? 'هذا الحقل مطلوب'
+                                  : null,
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      const SizedBox(height: 12),
 
                       // ── Surah fields ─────────────────────────
                       _SectionLabel(
@@ -637,6 +693,7 @@ class _SheetField extends StatelessWidget {
   final List<TextInputFormatter>? inputFormatters;
   final int maxLines;
   final String? Function(String?)? validator;
+  final bool enabled;
 
   const _SheetField({
     required this.ctrl,
@@ -649,6 +706,7 @@ class _SheetField extends StatelessWidget {
     this.inputFormatters,
     this.maxLines = 1,
     this.validator,
+    this.enabled = true,
   });
 
   @override
@@ -659,6 +717,7 @@ class _SheetField extends StatelessWidget {
     return TextFormField(
       controller: ctrl,
       textInputAction: action,
+      enabled: enabled,
       keyboardType: keyboardType,
       inputFormatters: inputFormatters,
       maxLines: maxLines,

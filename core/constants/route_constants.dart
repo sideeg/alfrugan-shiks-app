@@ -12,5 +12,14 @@ class RouteConstants {
   static const String CREATE_REVIEW_LOG = "/create-review-log";
   static const String PROFILE = "/profile";
   static const String NOTIFICATIONS = "/notifications";
-}
 
+  // ── Deep Link Destinations (above shell) ─────────────────────────────────
+  // Used by FcmService and NotificationHelper to navigate from push taps.
+
+  // 'new_student' notification → /groups/{groupId}/students
+  static const String groups = '/groups';
+
+  // 'course_start' / 'course_end' → /courses/{courseId}  (nested in courses)
+  // 'enrollment'                  → /students
+  // 'custom_broadcast'            → /notifications
+}

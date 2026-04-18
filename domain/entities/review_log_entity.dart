@@ -10,7 +10,8 @@ class ReviewLogEntity {
   final int endAyah;
   final String evaluation;
   final String notes;
-  final DateTime date;
+  final DateTime date; // created_at
+  final DateTime sessionDate; // ✅ NEW - editable session date
   final String? courseName;
 
   ReviewLogEntity({
@@ -25,6 +26,7 @@ class ReviewLogEntity {
     required this.evaluation,
     required this.notes,
     required this.date,
+    required this.sessionDate, // ✅ NEW
     this.courseName,
   });
 
@@ -41,5 +43,7 @@ class ReviewLogEntity {
         evaluation: json['evaluation'],
         notes: json['notes'] ?? '',
         date: DateTime.parse(json['created_at']),
+        sessionDate:
+            DateTime.parse(json['session_date'] ?? json['created_at']), // ✅ NEW
       );
 }

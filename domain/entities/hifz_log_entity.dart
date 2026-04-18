@@ -12,6 +12,7 @@ class HifzLogEntity {
   final String evaluation;
   final String notes;
   final DateTime date;
+  final DateTime sessionDate;
   final String? courseName; // ✅ NEW - for display
 
   HifzLogEntity({
@@ -26,6 +27,7 @@ class HifzLogEntity {
     required this.evaluation,
     required this.notes,
     required this.date,
+    required this.sessionDate,
     this.courseName,
   });
 
@@ -41,6 +43,7 @@ class HifzLogEntity {
         evaluation: json['evaluation'],
         notes: json['notes'] ?? '',
         date: DateTime.parse(json['created_at']),
+        sessionDate: DateTime.parse(json['session_date'] ?? json['created_at']),
         courseName: json['course_name'], // NEW
       );
 }

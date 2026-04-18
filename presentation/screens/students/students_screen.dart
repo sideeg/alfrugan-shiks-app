@@ -1,11 +1,10 @@
 // lib/presentation/screens/students/students_screen.dart
-import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:quran_sheikh_app/domain/entities/student_entity.dart';
 import 'package:quran_sheikh_app/presentation/providers/students_provider.dart';
 import 'package:quran_sheikh_app/presentation/screens/logs/enhanced_student_logs_screen.dart';
-import 'package:quran_sheikh_app/domain/entities/student_entity.dart';
 
 class StudentsScreen extends ConsumerStatefulWidget {
   const StudentsScreen({super.key});
@@ -44,12 +43,15 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen>
         foregroundColor: Colors.black87,
         elevation: 0,
         bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(100),
+          // FIX 1: Use 120 instead of 100 — gives enough room for search
+          // bar (56px) + tabs (48px) + vertical padding (16px) = 120px
+          preferredSize: const Size.fromHeight(120),
           child: Column(
+            mainAxisSize: MainAxisSize.min, // don't expand beyond content
             children: [
               // Search bar
               Container(
-                margin: const EdgeInsets.all(16),
+                margin: const EdgeInsets.fromLTRB(16, 8, 16, 8),
                 decoration: BoxDecoration(
                   color: Colors.grey[100],
                   borderRadius: BorderRadius.circular(12),
@@ -62,6 +64,7 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen>
                     border: InputBorder.none,
                     contentPadding:
                         EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    isDense: true, // reduces internal padding
                   ),
                   onChanged: (query) {
                     ref.read(searchQueryProvider.notifier).state = query;
@@ -73,14 +76,8 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen>
               TabBar(
                 controller: _tabController,
                 tabs: const [
-                  Tab(
-                    icon: Icon(Icons.list),
-                    text: 'قائمة الطلاب',
-                  ),
-                  Tab(
-                    icon: Icon(Icons.school),
-                    text: 'حسب الدورة',
-                  ),
+                  Tab(icon: Icon(Icons.list), text: 'قائمة الطلاب'),
+                  Tab(icon: Icon(Icons.school), text: 'حسب الدورة'),
                 ],
                 labelColor: Colors.blue,
                 unselectedLabelColor: Colors.grey,
@@ -93,10 +90,7 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen>
       body: studentsAsync.when(
         data: (response) => Column(
           children: [
-            // Stats header
             _buildStatsHeader(response),
-
-            // Tab content
             Expanded(
               child: TabBarView(
                 controller: _tabController,
@@ -179,10 +173,7 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen>
         const SizedBox(height: 4),
         Text(
           title,
-          style: TextStyle(
-            fontSize: 12,
-            color: Colors.grey[600],
-          ),
+          style: TextStyle(fontSize: 12, color: Colors.grey[600]),
           textAlign: TextAlign.center,
         ),
       ],
@@ -191,15 +182,10 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen>
 
   Widget _buildStudentsList() {
     final filteredStudents = ref.watch(filteredStudentsProvider);
-
-    if (filteredStudents.isEmpty) {
-      return _buildEmptyState();
-    }
+    if (filteredStudents.isEmpty) return _buildEmptyState();
 
     return RefreshIndicator(
-      onRefresh: () async {
-        ref.invalidate(studentsProvider);
-      },
+      onRefresh: () async => ref.invalidate(studentsProvider),
       child: ListView.builder(
         padding: const EdgeInsets.all(16),
         itemCount: filteredStudents.length,
@@ -215,22 +201,16 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen>
 
   Widget _buildStudentsGrouped() {
     final groupedStudents = ref.watch(studentsGroupedByCourseProvider);
-
-    if (groupedStudents.isEmpty) {
-      return _buildEmptyState();
-    }
+    if (groupedStudents.isEmpty) return _buildEmptyState();
 
     return RefreshIndicator(
-      onRefresh: () async {
-        ref.invalidate(studentsProvider);
-      },
+      onRefresh: () async => ref.invalidate(studentsProvider),
       child: ListView.builder(
         padding: const EdgeInsets.all(16),
         itemCount: groupedStudents.keys.length,
         itemBuilder: (context, index) {
           final courseName = groupedStudents.keys.elementAt(index);
           final students = groupedStudents[courseName]!;
-
           return CourseGroupCard(
             courseName: courseName,
             students: students,
@@ -250,18 +230,12 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen>
           const SizedBox(height: 16),
           Text(
             'لا توجد نتائج',
-            style: TextStyle(
-              fontSize: 18,
-              color: Colors.grey[600],
-            ),
+            style: TextStyle(fontSize: 18, color: Colors.grey[600]),
           ),
           const SizedBox(height: 8),
           Text(
             'جرب تغيير كلمات البحث',
-            style: TextStyle(
-              fontSize: 14,
-              color: Colors.grey[500],
-            ),
+            style: TextStyle(fontSize: 14, color: Colors.grey[500]),
           ),
         ],
       ),
@@ -275,9 +249,9 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen>
         children: [
           const Icon(Icons.error_outline, size: 80, color: Colors.red),
           const SizedBox(height: 16),
-          Text(
+          const Text(
             'حدث خطأ',
-            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 8),
           Text(
@@ -310,15 +284,17 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen>
   }
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// STUDENT CARD
+// FIX 2: All text fields use overflow: TextOverflow.ellipsis and the chips
+// row uses Flexible so long emails and course names never overflow the card.
+// ─────────────────────────────────────────────────────────────────────────────
+
 class StudentCard extends StatelessWidget {
   final StudentEntity student;
   final VoidCallback onTap;
 
-  const StudentCard({
-    required this.student,
-    required this.onTap,
-    Key? key,
-  }) : super(key: key);
+  const StudentCard({required this.student, required this.onTap, super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -332,13 +308,16 @@ class StudentCard extends StatelessWidget {
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               // Avatar
               CircleAvatar(
                 radius: 24,
                 backgroundColor: Colors.blue.withOpacity(0.1),
                 child: Text(
-                  student.name.substring(0, 1).toUpperCase(),
+                  student.name.isNotEmpty
+                      ? student.name.substring(0, 1).toUpperCase()
+                      : '?',
                   style: const TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
@@ -347,46 +326,56 @@ class StudentCard extends StatelessWidget {
                 ),
               ),
 
-              const SizedBox(width: 16),
+              const SizedBox(width: 12),
 
-              // Student info
+              // Student info — Expanded prevents overflow
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    // Name
                     Text(
                       student.name,
                       style: const TextStyle(
-                        fontSize: 16,
+                        fontSize: 15,
                         fontWeight: FontWeight.w600,
                       ),
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 1,
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 3),
+
+                    // Email — ellipsis prevents horizontal overflow
                     Text(
                       student.email,
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.grey[600],
-                      ),
+                      style: TextStyle(fontSize: 13, color: Colors.grey[600]),
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 1,
                     ),
                     const SizedBox(height: 8),
+
+                    // Chips row — Flexible allows chips to shrink if needed
                     Row(
                       children: [
-                        _buildInfoChip(student.course.name, Colors.blue),
-                        const SizedBox(width: 8),
-                        _buildInfoChip(student.group.name, Colors.green),
+                        Flexible(
+                          child:
+                              _buildInfoChip(student.course.name, Colors.blue),
+                        ),
+                        const SizedBox(width: 6),
+                        Flexible(
+                          child:
+                              _buildInfoChip(student.group.name, Colors.green),
+                        ),
                       ],
                     ),
                   ],
                 ),
               ),
 
+              const SizedBox(width: 8),
+
               // Arrow
-              Icon(
-                Icons.arrow_forward_ios,
-                size: 16,
-                color: Colors.grey[400],
-              ),
+              Icon(Icons.arrow_forward_ios, size: 14, color: Colors.grey[400]),
             ],
           ),
         ),
@@ -405,14 +394,20 @@ class StudentCard extends StatelessWidget {
       child: Text(
         label,
         style: TextStyle(
-          fontSize: 12,
+          fontSize: 11,
           color: color,
           fontWeight: FontWeight.w600,
         ),
+        overflow: TextOverflow.ellipsis,
+        maxLines: 1,
       ),
     );
   }
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// COURSE GROUP CARD (unchanged — no overflow issues here)
+// ─────────────────────────────────────────────────────────────────────────────
 
 class CourseGroupCard extends StatelessWidget {
   final String courseName;
@@ -423,8 +418,8 @@ class CourseGroupCard extends StatelessWidget {
     required this.courseName,
     required this.students,
     required this.onStudentTap,
-    Key? key,
-  }) : super(key: key);
+    super.key,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -435,36 +430,36 @@ class CourseGroupCard extends StatelessWidget {
       child: ExpansionTile(
         title: Text(
           courseName,
-          style: const TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-          ),
+          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+          overflow: TextOverflow.ellipsis,
         ),
         subtitle: Text('${students.length} طلاب'),
         leading: CircleAvatar(
           backgroundColor: Colors.blue.withOpacity(0.1),
           child: const Icon(Icons.school, color: Colors.blue),
         ),
-        children: students
-            .map((student) => ListTile(
-                  title: Text(student.name),
-                  subtitle: Text(student.group.name),
-                  leading: CircleAvatar(
-                    radius: 16,
-                    backgroundColor: Colors.green.withOpacity(0.1),
-                    child: Text(
-                      student.name.substring(0, 1).toUpperCase(),
-                      style: const TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.green,
-                      ),
-                    ),
-                  ),
-                  trailing: const Icon(Icons.arrow_forward_ios, size: 14),
-                  onTap: () => onStudentTap(student),
-                ))
-            .toList(),
+        children: students.map((student) {
+          return ListTile(
+            title: Text(student.name, overflow: TextOverflow.ellipsis),
+            subtitle: Text(student.group.name, overflow: TextOverflow.ellipsis),
+            leading: CircleAvatar(
+              radius: 16,
+              backgroundColor: Colors.green.withOpacity(0.1),
+              child: Text(
+                student.name.isNotEmpty
+                    ? student.name.substring(0, 1).toUpperCase()
+                    : '?',
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.green,
+                ),
+              ),
+            ),
+            trailing: const Icon(Icons.arrow_forward_ios, size: 14),
+            onTap: () => onStudentTap(student),
+          );
+        }).toList(),
       ),
     );
   }

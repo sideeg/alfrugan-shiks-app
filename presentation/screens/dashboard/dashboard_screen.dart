@@ -4,11 +4,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+
 import '../../providers/auth_provider.dart';
 import '../../providers/dashboard_provider.dart';
+import '../../providers/notifications_provider.dart';
 import 'widgets/dashboard_stats_widget.dart';
-import 'widgets/recent_activities_widget.dart';
 import 'widgets/quick_actions_widget.dart';
+import 'widgets/recent_activities_widget.dart';
 
 const kDGold = Color(0xFFD4A843);
 const kDNavy = Color(0xFF0B1120);
@@ -34,6 +36,18 @@ class DashboardScreen extends ConsumerWidget {
     final dashboardAsync = ref.watch(dashboardWithRefreshProvider);
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
+    // When dashboard data loads, sync the unread count from it.
+    // This replaces the separate /notifications/unread/count call.
+    ref.listen(dashboardWithRefreshProvider, (prev, next) {
+      next.whenData((dashboard) {
+        final count = dashboard.unreadNotificationsCount;
+        // Only update if the value differs — avoids unnecessary rebuilds
+        if (ref.read(unreadCountProvider) != count) {
+          ref.read(unreadCountProvider.notifier).state = count;
+        }
+      });
+    });
+
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: isDark ? SystemUiOverlayStyle.light : SystemUiOverlayStyle.dark,
       child: Scaffold(
@@ -46,8 +60,11 @@ class DashboardScreen extends ConsumerWidget {
                 child: RefreshIndicator(
                   color: kDGold,
                   backgroundColor: isDark ? kDNavyMid : kDLightCard,
-                  onRefresh: () async =>
-                      ref.read(dashboardRefreshProvider.notifier).state++,
+                  onRefresh: () async {
+                    // Pull-to-refresh reloads the dashboard which
+                    // automatically re-syncs the badge count via the listener above
+                    ref.read(dashboardRefreshProvider.notifier).state++;
+                  },
                   child: dashboardAsync.when(
                     data: (dashboard) => SingleChildScrollView(
                       physics: const AlwaysScrollableScrollPhysics(),
@@ -100,11 +117,14 @@ class _TopBar extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final unreadCount = ref.watch(unreadCountProvider);
+
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 10, 16, 6),
       child: Row(
         textDirection: TextDirection.rtl,
         children: [
+          // ── Logo ────────────────────────────────────────────────────────
           Container(
             width: 34,
             height: 34,
@@ -115,30 +135,92 @@ class _TopBar extends ConsumerWidget {
             ),
             child: ClipRRect(
               borderRadius: BorderRadius.circular(8),
-              child: Image.asset('assets/icons/logo.png',
-                  fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => const Icon(
-                      Icons.menu_book_rounded,
-                      size: 16,
-                      color: kDGold)),
+              child: Image.asset(
+                'assets/icons/logo.png',
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => const Icon(
+                    Icons.menu_book_rounded,
+                    size: 16,
+                    color: kDGold),
+              ),
             ),
           ),
           const SizedBox(width: 8),
-          Text('تطبيق الشيوخ',
-              style: TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.bold,
-                  color: isDark ? kDCream : kDNavy)),
+          Text(
+            'تطبيق الشيوخ',
+            style: TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.bold,
+              color: isDark ? kDCream : kDNavy,
+            ),
+          ),
+
           const Spacer(),
-          _Btn(Icons.notifications_outlined, isDark, () {
-            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-              content: const Text('الإشعارات قريباً'),
-              backgroundColor: kDGold,
-              behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12)),
-            ));
-          }),
+
+          // ── Notification Bell with Badge ──────────────────────────────
+          GestureDetector(
+            onTap: () {
+              context.go('/notifications');
+              // Reset badge immediately on tap — the notification screen
+              // will call mark-all-read on the backend
+              ref.read(unreadCountProvider.notifier).reset();
+            },
+            child: Container(
+              width: 34,
+              height: 34,
+              decoration: BoxDecoration(
+                color: isDark ? kDNavyMid : Colors.white,
+                borderRadius: BorderRadius.circular(9),
+                border: Border.all(color: kDGold.withValues(alpha: 0.2)),
+              ),
+              child: Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  Center(
+                    child: Icon(
+                      unreadCount > 0
+                          ? Icons.notifications_rounded
+                          : Icons.notifications_outlined,
+                      size: 17,
+                      color: unreadCount > 0
+                          ? kDGold
+                          : (isDark ? kDCream : kDNavy),
+                    ),
+                  ),
+                  if (unreadCount > 0)
+                    Positioned(
+                      top: -4,
+                      left: -4,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 4, vertical: 1),
+                        constraints:
+                            const BoxConstraints(minWidth: 16, minHeight: 16),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFD32F2F),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: isDark ? kDNavyMid : Colors.white,
+                            width: 1.5,
+                          ),
+                        ),
+                        child: Text(
+                          unreadCount > 99 ? '99+' : unreadCount.toString(),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 8,
+                            fontWeight: FontWeight.bold,
+                            height: 1.2,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ),
+
           const SizedBox(width: 6),
           _Btn(Icons.person_outline_rounded, isDark,
               () => context.go('/profile')),
@@ -153,18 +235,6 @@ class _TopBar extends ConsumerWidget {
   void _confirmLogout(BuildContext ctx, WidgetRef ref) {
     showDialog(
       context: ctx,
-      // ─────────────────────────────────────────────────────────────────────
-      // FIX: name the builder param `dialogCtx` (not `_`) and use IT for
-      // Navigator.pop inside the dialog.
-      //
-      // With `builder: (_)`, the `_` context is discarded. Any Navigator.pop
-      // that references the outer `ctx` (the Scaffold/page BuildContext) will
-      // resolve via go_router to the PAGE-level navigator — which pops the
-      // whole dashboard screen instead of just dismissing the dialog.
-      //
-      // Rule: for all Navigator calls INSIDE a dialog builder, always use
-      // the builder's own BuildContext parameter, never the outer context.
-      // ─────────────────────────────────────────────────────────────────────
       builder: (dialogCtx) => AlertDialog(
         backgroundColor: isDark ? kDNavyMid : kDLightCard,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -179,21 +249,19 @@ class _TopBar extends ConsumerWidget {
                     : Colors.grey[600])),
         actions: [
           TextButton(
-            // ✓ dialogCtx → pops the dialog only, dashboard stays intact
             onPressed: () => Navigator.of(dialogCtx).pop(),
             child: Text('إلغاء',
                 style: TextStyle(color: isDark ? kDCream : kDNavy)),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFE53935),
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10))),
+              backgroundColor: const Color(0xFFE53935),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10)),
+            ),
             onPressed: () async {
-              // ✓ dismiss dialog first with its own context
               Navigator.of(dialogCtx).pop();
-              // then logout and navigate using the page context (correct)
               await ref.read(authProvider.notifier).logout();
               if (ctx.mounted) ctx.go('/login');
             },
@@ -231,7 +299,7 @@ class _Btn extends StatelessWidget {
   }
 }
 
-// ─── Compact greeting ─────────────────────────────────────────────────────────
+// ─── Greeting ─────────────────────────────────────────────────────────────────
 class _GreetingBar extends StatelessWidget {
   final String name;
   final String greeting;
@@ -272,9 +340,10 @@ class _GreetingBar extends StatelessWidget {
               ),
               boxShadow: [
                 BoxShadow(
-                    color: kDGold.withValues(alpha: 0.35),
-                    blurRadius: 10,
-                    offset: const Offset(0, 3))
+                  color: kDGold.withValues(alpha: 0.35),
+                  blurRadius: 10,
+                  offset: const Offset(0, 3),
+                ),
               ],
             ),
             child:
