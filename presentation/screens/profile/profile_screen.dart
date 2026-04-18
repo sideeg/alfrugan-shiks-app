@@ -228,6 +228,8 @@ class _ProfileContent extends StatelessWidget {
                       _InfoRow(label: 'رقم الهاتف', value: profile.phone!),
                     if (profile.nationalId != null)
                       _InfoRow(label: 'رقم الهوية', value: profile.nationalId!),
+                    if (profile.nationality != null)
+                      _InfoRow(label: 'الجنسية', value: profile.nationality!),
                     if (profile.qiraat != null)
                       _InfoRow(label: 'القراءة', value: profile.qiraat!),
                   ],

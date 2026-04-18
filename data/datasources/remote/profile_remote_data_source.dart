@@ -52,6 +52,8 @@ class ProfileRemoteDataSourceImpl implements ProfileRemoteDataSource {
             'phone': request.phone,
           if (request.nationalId != null && request.nationalId!.isNotEmpty)
             'national_id': request.nationalId,
+          if (request.nationality != null && request.nationality!.isNotEmpty)
+            'nationality': request.nationality,
           if (request.qiraat != null && request.qiraat!.isNotEmpty)
             'qiraat': request.qiraat,
           'profile_image': request.profileImageFile,
@@ -80,6 +82,8 @@ class ProfileRemoteDataSourceImpl implements ProfileRemoteDataSource {
             'phone': request.phone,
           if (request.nationalId != null && request.nationalId!.isNotEmpty)
             'national_id': request.nationalId,
+          if (request.nationality != null && request.nationality!.isNotEmpty)
+            'nationality': request.nationality,
           if (request.qiraat != null && request.qiraat!.isNotEmpty)
             'qiraat': request.qiraat,
         };

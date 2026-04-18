@@ -6,6 +6,7 @@ class ProfileEntity extends Equatable {
   final String email;
   final String? phone;
   final String? nationalId;
+  final String? nationality;
   final String? qiraat;
   final String? profileImage;
   final String role;
@@ -19,6 +20,7 @@ class ProfileEntity extends Equatable {
     required this.email,
     this.phone,
     this.nationalId,
+    this.nationality,
     this.qiraat,
     this.profileImage,
     required this.role,
@@ -33,6 +35,7 @@ class ProfileEntity extends Equatable {
     String? email,
     String? phone,
     String? nationalId,
+    String? nationality,
     String? qiraat,
     String? profileImage,
     String? role,
@@ -46,6 +49,7 @@ class ProfileEntity extends Equatable {
       email: email ?? this.email,
       phone: phone ?? this.phone,
       nationalId: nationalId ?? this.nationalId,
+      nationality: nationality ?? this.nationality,
       qiraat: qiraat ?? this.qiraat,
       profileImage: profileImage ?? this.profileImage,
       role: role ?? this.role,
@@ -62,6 +66,7 @@ class ProfileEntity extends Equatable {
         email,
         phone,
         nationalId,
+        nationality,
         qiraat,
         profileImage,
         role,

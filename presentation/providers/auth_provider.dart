@@ -158,6 +158,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
         email: profile.email,
         phone: profile.phone,
         nationalId: profile.nationalId,
+        // nationality: profile.nationality,
         qiraat: profile.qiraat,
         profileImage: profile.profileImage,
       );

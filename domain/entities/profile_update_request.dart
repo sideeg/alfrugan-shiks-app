@@ -8,17 +8,18 @@ class ProfileUpdateRequest extends Equatable {
   final String email;
   final String? phone;
   final String? nationalId;
+  final String? nationality;
   final String? qiraat;
   final File? profileImageFile;
 
-  const ProfileUpdateRequest({
-    required this.name,
-    required this.email,
-    this.phone,
-    this.nationalId,
-    this.qiraat,
-    this.profileImageFile,
-  });
+  const ProfileUpdateRequest(
+      {required this.name,
+      required this.email,
+      this.phone,
+      this.nationalId,
+      this.qiraat,
+      this.profileImageFile,
+      this.nationality});
 
   @override
   List<Object?> get props => [
@@ -26,6 +27,7 @@ class ProfileUpdateRequest extends Equatable {
         email,
         phone,
         nationalId,
+        nationality,
         qiraat,
         profileImageFile,
       ];

@@ -17,6 +17,67 @@ const _eCream = Color(0xFFF5EDD8);
 const _eLightBg = Color(0xFFF2F4F8);
 const _eLightCard = Color(0xFFFFFFFF);
 
+// ─── Lists ────────────────────────────────────────────────────────────────────
+const List<String> qiraatList = [
+  'حفص عن عاصم الكوفي',
+  'شعبة عن عاصم الكوفي',
+  'خلف عن حمزة الكوفي',
+  'خلاد عن حمزة الكوفي',
+  'قالون عن نافع المدني',
+  'ورش عن نافع المدني',
+  'البزي عن ابن كثير المكي',
+  'قنبل عن ابن كثير المكي',
+  'الدوري عن أبي عمرو البصري',
+  'السوسي عن أبي عمرو البصري',
+  'هشام عن ابن عامر الشامي',
+  'ابن ذكوان عن ابن عامر الشامي',
+  'أبو الحارث عن الكسائي الكوفي',
+  'الدوري عن الكسائي الكوفي',
+  'ابن وردان عن أبي جعفر المدني',
+  'ابن جماز عن أبي جعفر المدني',
+  'رويس عن يعقوب الحضرمي',
+  'روح عن يعقوب الحضرمي',
+  'إسحاق عن خلف العاشر',
+  'إدريس عن خلف العاشر',
+];
+
+const List<String> nationalitiesList = [
+  'سعودي',
+  'مصري',
+  'أردني',
+  'إماراتي',
+  'بحريني',
+  'كويتي',
+  'عماني',
+  'قطري',
+  'فلسطيني',
+  'سوري',
+  'لبناني',
+  'عراقي',
+  'يمني',
+  'سوداني',
+  'ليبي',
+  'تونسي',
+  'جزائري',
+  'مغربي',
+  'موريتاني',
+  'صومالي',
+  'جيبوتي',
+  'تركي',
+  'باكستاني',
+  'هندي',
+  'بنغلاديشي',
+  'أفغاني',
+  'إندونيسي',
+  'ماليزي',
+  'أمريكي',
+  'بريطاني',
+  'كندي',
+  'أسترالي',
+  'أوروبي',
+  'أخرى'
+];
+
 class EditProfileScreen extends ConsumerStatefulWidget {
   const EditProfileScreen({super.key});
 
@@ -30,7 +91,9 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
   final _emailCtrl = TextEditingController();
   final _phoneCtrl = TextEditingController();
   final _nationalIdCtrl = TextEditingController();
-  final _qiraatCtrl = TextEditingController();
+
+  String? _selectedQiraat;
+  String? _selectedNationality;
 
   File? _selectedImage;
   bool _hasChanges = false;
@@ -48,15 +111,15 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
       _emailCtrl.text = p.email;
       _phoneCtrl.text = p.phone ?? '';
       _nationalIdCtrl.text = p.nationalId ?? '';
-      _qiraatCtrl.text = p.qiraat ?? '';
+
+      // Setup Dropdowns (Check if value exists in list, otherwise null)
+      _selectedQiraat =
+          (p.qiraat != null && qiraatList.contains(p.qiraat)) ? p.qiraat : null;
+      // Assuming 'nationality' is added to your Profile entity:
+      // _selectedNationality = (p.nationality != null && nationalitiesList.contains(p.nationality)) ? p.nationality : null;
     }
-    for (final c in [
-      _nameCtrl,
-      _emailCtrl,
-      _phoneCtrl,
-      _nationalIdCtrl,
-      _qiraatCtrl
-    ]) {
+
+    for (final c in [_nameCtrl, _emailCtrl, _phoneCtrl, _nationalIdCtrl]) {
       c.addListener(() {
         if (!_hasChanges) setState(() => _hasChanges = true);
       });
@@ -69,8 +132,11 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
     _emailCtrl.dispose();
     _phoneCtrl.dispose();
     _nationalIdCtrl.dispose();
-    _qiraatCtrl.dispose();
     super.dispose();
+  }
+
+  void _onDropdownChanged() {
+    if (!_hasChanges) setState(() => _hasChanges = true);
   }
 
   void _save() {
@@ -85,9 +151,10 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
               nationalId: _nationalIdCtrl.text.trim().isEmpty
                   ? null
                   : _nationalIdCtrl.text.trim(),
-              qiraat: _qiraatCtrl.text.trim().isEmpty
-                  ? null
-                  : _qiraatCtrl.text.trim(),
+              nationality: _selectedNationality,
+              // Pass the selected dropdown values:
+              qiraat: _selectedQiraat,
+              // nationality: _selectedNationality, // Make sure to add this to ProfileUpdateRequest
               profileImageFile: _selectedImage,
             ),
           );
@@ -291,18 +358,43 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                                   icon: Icons.credit_card_rounded,
                                   color: const Color(0xFF6A1B9A),
                                   isDark: isDark,
-                                  inputAction: TextInputAction.next,
+                                  inputAction: TextInputAction.done,
                                   keyboardType: TextInputType.number,
                                 ),
                                 _FormDivider(isDark: isDark),
-                                _Field(
-                                  controller: _qiraatCtrl,
+                                _DropdownField(
+                                  value: _selectedNationality,
+                                  label: 'الجنسية',
+                                  icon: Icons.flag_rounded,
+                                  color: const Color(0xFF0277BD),
+                                  isDark: isDark,
+                                  items: nationalitiesList,
+                                  onChanged: (val) {
+                                    if (val != null &&
+                                        val != _selectedNationality) {
+                                      setState(() {
+                                        _selectedNationality = val;
+                                        _hasChanges = true;
+                                      });
+                                    }
+                                  },
+                                ),
+                                _FormDivider(isDark: isDark),
+                                _DropdownField(
+                                  value: _selectedQiraat,
                                   label: 'القراءة',
                                   icon: Icons.menu_book_rounded,
                                   color: _eGold,
                                   isDark: isDark,
-                                  inputAction: TextInputAction.done,
-                                  keyboardType: TextInputType.text,
+                                  items: qiraatList,
+                                  onChanged: (val) {
+                                    if (val != null && val != _selectedQiraat) {
+                                      setState(() {
+                                        _selectedQiraat = val;
+                                        _hasChanges = true;
+                                      });
+                                    }
+                                  },
                                 ),
                               ],
                             ),
@@ -336,6 +428,76 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
     );
   }
 }
+
+// ─── Custom Dropdown Field ───────────────────────────────────────────────────
+class _DropdownField extends StatelessWidget {
+  final String? value;
+  final String label;
+  final IconData icon;
+  final Color color;
+  final bool isDark;
+  final List<String> items;
+  final ValueChanged<String?> onChanged;
+
+  const _DropdownField({
+    required this.value,
+    required this.label,
+    required this.icon,
+    required this.color,
+    required this.isDark,
+    required this.items,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final textClr = isDark ? _eCream : _eNavy;
+    final subClr = isDark ? Colors.grey[400]! : Colors.grey[500]!;
+    final dropColor = isDark ? _eNavyMid : _eLightCard;
+
+    return Directionality(
+      textDirection: TextDirection.rtl,
+      child: DropdownButtonFormField<String>(
+        value: value,
+        onChanged: onChanged,
+        dropdownColor: dropColor,
+        icon: Icon(Icons.keyboard_arrow_down_rounded, color: subClr),
+        style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+            color: textClr,
+            fontFamily: 'Cairo'),
+        decoration: InputDecoration(
+          labelText: label,
+          labelStyle: TextStyle(fontSize: 13, color: subClr),
+          prefixIcon: Padding(
+            padding: const EdgeInsets.all(10),
+            child: Container(
+              width: 32,
+              height: 32,
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(icon, size: 16, color: color),
+            ),
+          ),
+          border: InputBorder.none,
+          contentPadding:
+              const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        ),
+        items: items.map((item) {
+          return DropdownMenuItem(
+            value: item,
+            child: Text(item, textDirection: TextDirection.rtl),
+          );
+        }).toList(),
+      ),
+    );
+  }
+}
+
+// ... [Keep _EditTopBar, _SectionLabel, _FormCard, _FormDivider, _Field, and _SaveButton exactly as they were in your code] ...
 
 // ─── Top bar ──────────────────────────────────────────────────────────────────
 class _EditTopBar extends StatelessWidget {
