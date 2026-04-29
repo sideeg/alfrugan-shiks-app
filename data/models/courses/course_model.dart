@@ -20,7 +20,7 @@ class CourseModel extends CourseEntity {
     required double enrollmentPercentage,
     required int availableSlots,
     required bool canEnroll,
-    String? mosque,
+    Map<String, dynamic>? mosque,
     required int createdBy,
     required DateTime createdAt,
     required DateTime updatedAt,
@@ -57,7 +57,9 @@ class CourseModel extends CourseEntity {
       enrollmentPercentage: (json['enrollment_percentage'] ?? 0.0).toDouble(),
       availableSlots: json['available_slots'] ?? 0,
       canEnroll: json['can_enroll'] ?? false,
-      mosque: json['mosque'],
+      mosque: json['mosque'] != null
+          ? Map<String, dynamic>.from(json['mosque'] as Map)
+          : null,
       createdBy: json['created_by'] ?? 0,
       createdAt: DateTime.parse(
           json['created_at'] ?? DateTime.now().toIso8601String()),

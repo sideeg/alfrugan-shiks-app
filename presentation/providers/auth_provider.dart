@@ -3,6 +3,8 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:quran_sheikh_app/config/dependency_injection.dart';
+import 'package:quran_sheikh_app/core/utils/notification_helper.dart'
+    show NotificationHelper;
 import 'package:quran_sheikh_app/data/datasources/local/auth_local_datasource.dart';
 import 'package:quran_sheikh_app/data/datasources/remote/notifications_remote_datasource.dart';
 import 'package:quran_sheikh_app/domain/entities/profile_entity.dart';
@@ -172,6 +174,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
         localDataSource: getIt<AuthLocalDataSource>(),
         remoteDataSource: getIt<NotificationsRemoteDataSource>(),
       );
+      // 👈 إضافة تذكيرات الأذكار اليومية
+      NotificationHelper.scheduleAdhkarReminders();
     }
 
     // Fetch unread count immediately after authentication.

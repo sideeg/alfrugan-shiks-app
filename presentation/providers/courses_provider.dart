@@ -9,5 +9,6 @@ final coursesProvider = FutureProvider<List<CourseEntity>>((ref) async {
   ApiClient apiClient = GetIt.instance<ApiClient>();
   final resp = await apiClient.get('/sheikh/courses');
   final List data = resp.data['data'] as List;
+
   return data.map((e) => CourseEntity.fromJson(e)).toList();
 });

@@ -34,54 +34,63 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen>
   @override
   Widget build(BuildContext context) {
     final studentsAsync = ref.watch(studentsProvider);
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: Colors.grey[50],
+      backgroundColor: isDark ? const Color(0xFF121212) : Colors.grey[50],
       appBar: AppBar(
         title: const Text('طلابي'),
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.black87,
-        elevation: 0,
+        backgroundColor: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+        foregroundColor: isDark ? Colors.white : Colors.black87,
+        elevation: isDark ? 0 : 0,
         bottom: PreferredSize(
-          // FIX 1: Use 120 instead of 100 — gives enough room for search
-          // bar (56px) + tabs (48px) + vertical padding (16px) = 120px
           preferredSize: const Size.fromHeight(120),
           child: Column(
-            mainAxisSize: MainAxisSize.min, // don't expand beyond content
+            mainAxisSize: MainAxisSize.min,
             children: [
-              // Search bar
               Container(
                 margin: const EdgeInsets.fromLTRB(16, 8, 16, 8),
                 decoration: BoxDecoration(
-                  color: Colors.grey[100],
+                  color: isDark ? const Color(0xFF2C2C2C) : Colors.grey[100],
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: TextField(
                   controller: _searchController,
-                  decoration: const InputDecoration(
+                  style: TextStyle(
+                    color: isDark ? Colors.white : Colors.black87,
+                  ),
+                  decoration: InputDecoration(
                     hintText: 'البحث عن طالب، مجموعة أو دورة...',
-                    prefixIcon: Icon(Icons.search),
+                    hintStyle: TextStyle(
+                      color:
+                          isDark ? Colors.grey.shade500 : Colors.grey.shade600,
+                    ),
+                    prefixIcon: Icon(
+                      Icons.search,
+                      color:
+                          isDark ? Colors.grey.shade400 : Colors.grey.shade600,
+                    ),
                     border: InputBorder.none,
-                    contentPadding:
-                        EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                    isDense: true, // reduces internal padding
+                    contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 12),
+                    isDense: true,
                   ),
                   onChanged: (query) {
                     ref.read(searchQueryProvider.notifier).state = query;
                   },
                 ),
               ),
-
-              // Tabs
               TabBar(
                 controller: _tabController,
                 tabs: const [
                   Tab(icon: Icon(Icons.list), text: 'قائمة الطلاب'),
                   Tab(icon: Icon(Icons.school), text: 'حسب الدورة'),
                 ],
-                labelColor: Colors.blue,
-                unselectedLabelColor: Colors.grey,
-                indicatorColor: Colors.blue,
+                labelColor: theme.colorScheme.primary,
+                unselectedLabelColor:
+                    isDark ? Colors.grey.shade500 : Colors.grey,
+                indicatorColor: theme.colorScheme.primary,
               ),
             ],
           ),
@@ -90,7 +99,7 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen>
       body: studentsAsync.when(
         data: (response) => Column(
           children: [
-            _buildStatsHeader(response),
+            _buildStatsHeader(response, isDark),
             Expanded(
               child: TabBarView(
                 controller: _tabController,
@@ -103,21 +112,23 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen>
           ],
         ),
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, stack) => _buildErrorState(error.toString()),
+        error: (error, stack) => _buildErrorState(error.toString(), isDark),
       ),
     );
   }
 
-  Widget _buildStatsHeader(StudentsResponse response) {
+  Widget _buildStatsHeader(StudentsResponse response, bool isDark) {
     return Container(
       margin: const EdgeInsets.all(16),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
+            color: isDark
+                ? Colors.black.withOpacity(0.3)
+                : Colors.grey.withOpacity(0.1),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -131,24 +142,35 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen>
               response.totalStudents.toString(),
               Colors.blue,
               Icons.person,
+              isDark,
             ),
           ),
-          Container(width: 1, height: 40, color: Colors.grey[300]),
+          Container(
+            width: 1,
+            height: 40,
+            color: isDark ? Colors.grey.shade700 : Colors.grey[300],
+          ),
           Expanded(
             child: _buildStatItem(
               'المجموعات',
               response.totalGroups.toString(),
               Colors.green,
               Icons.group,
+              isDark,
             ),
           ),
-          Container(width: 1, height: 40, color: Colors.grey[300]),
+          Container(
+            width: 1,
+            height: 40,
+            color: isDark ? Colors.grey.shade700 : Colors.grey[300],
+          ),
           Expanded(
             child: _buildStatItem(
               'الطلاب النشطين',
               ref.watch(filteredStudentsProvider).length.toString(),
               Colors.orange,
               Icons.trending_up,
+              isDark,
             ),
           ),
         ],
@@ -157,7 +179,7 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen>
   }
 
   Widget _buildStatItem(
-      String title, String value, Color color, IconData icon) {
+      String title, String value, Color color, IconData icon, bool isDark) {
     return Column(
       children: [
         Icon(icon, color: color, size: 24),
@@ -173,7 +195,10 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen>
         const SizedBox(height: 4),
         Text(
           title,
-          style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+          style: TextStyle(
+            fontSize: 12,
+            color: isDark ? Colors.grey.shade400 : Colors.grey[600],
+          ),
           textAlign: TextAlign.center,
         ),
       ],
@@ -222,27 +247,37 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen>
   }
 
   Widget _buildEmptyState() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.person_search, size: 80, color: Colors.grey[300]),
+          Icon(Icons.person_search,
+              size: 80,
+              color: isDark ? Colors.grey.shade700 : Colors.grey[300]),
           const SizedBox(height: 16),
           Text(
             'لا توجد نتائج',
-            style: TextStyle(fontSize: 18, color: Colors.grey[600]),
+            style: TextStyle(
+              fontSize: 18,
+              color: isDark ? Colors.grey.shade400 : Colors.grey[600],
+            ),
           ),
           const SizedBox(height: 8),
           Text(
             'جرب تغيير كلمات البحث',
-            style: TextStyle(fontSize: 14, color: Colors.grey[500]),
+            style: TextStyle(
+              fontSize: 14,
+              color: isDark ? Colors.grey.shade500 : Colors.grey[500],
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildErrorState(String error) {
+  Widget _buildErrorState(String error, bool isDark) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -256,7 +291,9 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen>
           const SizedBox(height: 8),
           Text(
             error,
-            style: TextStyle(color: Colors.grey[600]),
+            style: TextStyle(
+              color: isDark ? Colors.grey.shade400 : Colors.grey[600],
+            ),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 24),
@@ -286,8 +323,6 @@ class _StudentsScreenState extends ConsumerState<StudentsScreen>
 
 // ─────────────────────────────────────────────────────────────────────────────
 // STUDENT CARD
-// FIX 2: All text fields use overflow: TextOverflow.ellipsis and the chips
-// row uses Flexible so long emails and course names never overflow the card.
 // ─────────────────────────────────────────────────────────────────────────────
 
 class StudentCard extends StatelessWidget {
@@ -298,9 +333,12 @@ class StudentCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
-      elevation: 2,
+      elevation: isDark ? 1 : 2,
+      color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: InkWell(
         borderRadius: BorderRadius.circular(12),
@@ -310,72 +348,66 @@ class StudentCard extends StatelessWidget {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              // Avatar
               CircleAvatar(
                 radius: 24,
-                backgroundColor: Colors.blue.withOpacity(0.1),
+                backgroundColor: Colors.blue.withOpacity(isDark ? 0.2 : 0.1),
                 child: Text(
                   student.name.isNotEmpty
                       ? student.name.substring(0, 1).toUpperCase()
                       : '?',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
-                    color: Colors.blue,
+                    color: isDark ? Colors.blue.shade300 : Colors.blue,
                   ),
                 ),
               ),
-
               const SizedBox(width: 12),
-
-              // Student info — Expanded prevents overflow
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Name
                     Text(
                       student.name,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w600,
+                        color: isDark ? Colors.white : Colors.black87,
                       ),
                       overflow: TextOverflow.ellipsis,
                       maxLines: 1,
                     ),
                     const SizedBox(height: 3),
-
-                    // Email — ellipsis prevents horizontal overflow
                     Text(
                       student.email,
-                      style: TextStyle(fontSize: 13, color: Colors.grey[600]),
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: isDark ? Colors.grey.shade400 : Colors.grey[600],
+                      ),
                       overflow: TextOverflow.ellipsis,
                       maxLines: 1,
                     ),
                     const SizedBox(height: 8),
-
-                    // Chips row — Flexible allows chips to shrink if needed
                     Row(
                       children: [
                         Flexible(
-                          child:
-                              _buildInfoChip(student.course.name, Colors.blue),
+                          child: _buildInfoChip(
+                              student.course.name, Colors.blue, isDark),
                         ),
                         const SizedBox(width: 6),
                         Flexible(
-                          child:
-                              _buildInfoChip(student.group.name, Colors.green),
+                          child: _buildInfoChip(
+                              student.group.name, Colors.green, isDark),
                         ),
                       ],
                     ),
                   ],
                 ),
               ),
-
               const SizedBox(width: 8),
-
-              // Arrow
-              Icon(Icons.arrow_forward_ios, size: 14, color: Colors.grey[400]),
+              Icon(Icons.arrow_forward_ios,
+                  size: 14,
+                  color: isDark ? Colors.grey.shade600 : Colors.grey[400]),
             ],
           ),
         ),
@@ -383,19 +415,19 @@ class StudentCard extends StatelessWidget {
     );
   }
 
-  Widget _buildInfoChip(String label, Color color) {
+  Widget _buildInfoChip(String label, Color color, bool isDark) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withOpacity(isDark ? 0.15 : 0.1),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: color.withOpacity(0.3)),
+        border: Border.all(color: color.withOpacity(isDark ? 0.4 : 0.3)),
       ),
       child: Text(
         label,
         style: TextStyle(
           fontSize: 11,
-          color: color,
+          color: isDark ? color.withOpacity(0.9) : color,
           fontWeight: FontWeight.w600,
         ),
         overflow: TextOverflow.ellipsis,
@@ -406,7 +438,7 @@ class StudentCard extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// COURSE GROUP CARD (unchanged — no overflow issues here)
+// COURSE GROUP CARD
 // ─────────────────────────────────────────────────────────────────────────────
 
 class CourseGroupCard extends StatelessWidget {
@@ -423,40 +455,66 @@ class CourseGroupCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Card(
       margin: const EdgeInsets.only(bottom: 16),
-      elevation: 2,
+      elevation: isDark ? 1 : 2,
+      color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: ExpansionTile(
         title: Text(
           courseName,
-          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+            color: isDark ? Colors.white : Colors.black87,
+          ),
           overflow: TextOverflow.ellipsis,
         ),
-        subtitle: Text('${students.length} طلاب'),
+        subtitle: Text(
+          '${students.length} طلاب',
+          style: TextStyle(
+            color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
+          ),
+        ),
         leading: CircleAvatar(
-          backgroundColor: Colors.blue.withOpacity(0.1),
-          child: const Icon(Icons.school, color: Colors.blue),
+          backgroundColor: Colors.blue.withOpacity(isDark ? 0.2 : 0.1),
+          child: Icon(Icons.school,
+              color: isDark ? Colors.blue.shade300 : Colors.blue),
         ),
         children: students.map((student) {
           return ListTile(
-            title: Text(student.name, overflow: TextOverflow.ellipsis),
-            subtitle: Text(student.group.name, overflow: TextOverflow.ellipsis),
+            title: Text(
+              student.name,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: isDark ? Colors.white : Colors.black87,
+              ),
+            ),
+            subtitle: Text(
+              student.group.name,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
+              ),
+            ),
             leading: CircleAvatar(
               radius: 16,
-              backgroundColor: Colors.green.withOpacity(0.1),
+              backgroundColor: Colors.green.withOpacity(isDark ? 0.2 : 0.1),
               child: Text(
                 student.name.isNotEmpty
                     ? student.name.substring(0, 1).toUpperCase()
                     : '?',
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.bold,
-                  color: Colors.green,
+                  color: isDark ? Colors.green.shade300 : Colors.green,
                 ),
               ),
             ),
-            trailing: const Icon(Icons.arrow_forward_ios, size: 14),
+            trailing: Icon(Icons.arrow_forward_ios,
+                size: 14, color: isDark ? Colors.grey.shade600 : Colors.grey),
             onTap: () => onStudentTap(student),
           );
         }).toList(),
